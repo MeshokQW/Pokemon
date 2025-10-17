@@ -1,20 +1,19 @@
 from random import randint
-import requests
-
+import requests 
+from datetime import datetime, timedelta
 class Pokemon:
-    pokemons = {}
+    pokemons = {} # { username : pokemon}
     # Инициализация объекта (конструктор)
     def __init__(self, pokemon_trainer):
+
         self.pokemon_trainer = pokemon_trainer   
+
         self.pokemon_number = randint(1,1000)
-        self.hp = randint(75, 125)
-        self.power = randint(10, 25)
-
-        #delta = (100 - self.hp) // 2
-        #self.power = randint(10, 30) + delta
-
         self.img = self.get_img()
         self.name = self.get_name()
+
+        self.power = randint(30, 60)
+        self.hp = randint(200, 400)
 
         Pokemon.pokemons[pokemon_trainer] = self
 
@@ -24,9 +23,9 @@ class Pokemon:
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
-            return (data['sprites']['front_default'])
+            return (data['sprites']["other"]['official-artwork']["front_default"])
         else:
-            return "Pikachu"
+            return "https://static.wikia.nocookie.net/anime-characters-fight/images/7/77/Pikachu.png/revision/latest/scale-to-width-down/700?cb=20181021155144&path-prefix=ru"
     
     # Метод для получения имени покемона через API
     def get_name(self):
@@ -41,30 +40,49 @@ class Pokemon:
 
     # Метод класса для получения информации
     def info(self):
-        return f"Имя твоего покемона: {self.name} hp: {self.hp} power: {self.power}"
+        return f"""Имя твоего покеомона: {self.name}
+Cила покемона: {self.power}
+Здоровье покемона: {self.hp}"""
 
     # Метод класса для получения картинки покемона
     def show_img(self):
         return self.img
     
     def attack(self, enemy):
+        if isinstance(enemy, Wizard):
+            chance = randint(1,5)
+            if chance == 1:
+                return "Покемон-волшебник применил щит в сражении"
         if enemy.hp > self.power:
             enemy.hp -= self.power
-            return f"Сражение @{self.pokemon_trainer} с @{enemy.pokemon_trainer} осталось {enemy.hp}"
+            return f"""Сражение @{self.pokemon_trainer} с @{enemy.pokemon_trainer}
+Здоровье @{enemy.pokemon_trainer} теперь {enemy.hp}"""
         else:
             enemy.hp = 0
-            Pokemon.loosers.append(self.pokemon_trainer)
             return f"Победа @{self.pokemon_trainer} над @{enemy.pokemon_trainer}! "
 
+    
+class Wizard(Pokemon):
+  pass
+
+
 class Fighter(Pokemon):
-
-    def __init__(self, pokemon_trainer):
-        super().__init__(pokemon_trainer)
-        self.power += randint(30, 50)
-
-class Tank(Pokemon):
-
-    def __init__(self, pokemon_trainer):
-        super().__init__(pokemon_trainer)
-        self.hp += randint(90, 150)
-
+    def attack(self, enemy):
+        super_power = randint(5,15)
+        self.power += super_power
+        result = super().attack(enemy)
+        self.power -= super_power
+        return result + f"\nБоец применил супер-атаку силой:{super_power} "
+    
+    def feed(self):
+        current_time = datetime.now() 
+        feed_interval = timedelta(hours=2)
+        if current_time - self.last_feed_time >= feed_interval:
+            self.hp += 10  
+            self.last_feed_time = current_time  
+            return f"Покемон {self.name} покормлен! Здоровье увеличено до {self.hp}."
+        else:
+            time_left = self.last_feed_time + feed_interval - current_time
+            minutes, seconds = divmod(time_left.total_seconds(), 60)
+            hours, minutes = divmod(minutes, 60)
+            return f"Покемон {self.name} еще не голоден. Осталось {int(hours)} ч {int(minutes)} мин до следующего кормления."
